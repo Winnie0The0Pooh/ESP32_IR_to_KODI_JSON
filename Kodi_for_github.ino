@@ -1,4 +1,5 @@
-/*MIT License
+/*
+ * MIT License
 
 Copyright (c) 2021 Winnie0The0Pooh
 
@@ -19,8 +20,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
 */
+
+
 /*
  * IRremote: IRreceiveDemo - demonstrates receiving IR codes with IRrecv
  * An IR detector/demodulator must be connected to the input RECV_PIN.
@@ -69,13 +71,13 @@ void setup() {
     Serial.println(F("START " __FILE__ " from " __DATE__));
 
     
-        wifiMulti.addAP("Name_of_WiFi_AP", "Pass_to_WiFi");
+        wifiMulti.addAP("Your AP name", "Your WiFi pass");
 
     // In case the interrupt driver crashes on setup, give a clue
     // to the user what's going on.
     Serial.println("Enabling IRin");
     IrReceiver.enableIRIn();  // Start the receiver
-    IrReceiver.blink13(true); // Enable feedback LED
+    IrReceiver.blink13(true); // Enable feedback LED doesn't work on esp32
 
     Serial.print(F("Ready to receive IR signals at pin "));
     Serial.println(IR_RECEIVE_PIN);
@@ -114,6 +116,23 @@ void loop() {
         if(dvalue == 0xF10E){
           Serial.println("Previous track");
           kodi(4);
+        }
+
+        if(dvalue == 0x276F){
+          Serial.println("Yellow");
+          svet(1);
+        }
+        if(dvalue == 0x2770){
+          Serial.println("Blue");
+          svet(2);
+        }
+        if(dvalue == 0x276E){
+          Serial.println("Green");
+          svet(3);
+        }
+        if(dvalue == 0x276D){
+          Serial.println("Red");
+          svet(4);
         }
 
         IrReceiver.resume(); // Receive the next value
@@ -188,6 +207,68 @@ c2=0x27; //'
         USE_SERIAL.println(msg);
         // start connection and send HTTP header
         int httpCode = http.POST(msg);
+
+        // httpCode will be negative on error
+        if(httpCode > 0) {
+            // HTTP header has been send and Server response header has been handled
+            USE_SERIAL.printf("[HTTP] POST... code: %d\n", httpCode);
+
+  String response = http.getString();                       //Get the response to the request
+  
+//    Serial.println(httpCode);   //Print return code
+    Serial.print("response: ");
+    Serial.println(response);           //Print request answer
+  
+        } else {
+            USE_SERIAL.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+        }
+
+        http.end();
+    }
+
+    digitalWrite(LED,LOW);
+}
+
+void svet(uint8_t command){
+
+digitalWrite(LED,HIGH);
+
+  String msg = "http://192.168.1.74/Light/Control/";
+
+  switch (command) {
+  case 1: //Yellow btn
+    msg = msg + "bigroom/togglefirst";
+    break;
+  case 2: //Blue btn
+    msg = msg + "bigroom/togglesecond";
+    break;
+  case 3: //Green btn
+    msg = msg + "bigroom/bothon";
+    break;
+  case 4: //Red btn
+    msg = msg + "bigroom/bothoff";
+    break;
+
+  default:
+    msg = msg + "/bigroom/togglefirst";
+  break;
+} 
+
+      if((wifiMulti.run() == WL_CONNECTED)) {
+
+        HTTPClient http;
+
+        USE_SERIAL.print("[HTTP] begin...\n");
+        // configure traged server and url
+
+
+        http.begin(msg);
+
+
+        USE_SERIAL.print("[HTTP] POST...\n");
+        USE_SERIAL.println(msg);
+        // start connection and send HTTP header
+        int httpCode = http.GET(); //http.POST(msg);
 
         // httpCode will be negative on error
         if(httpCode > 0) {
